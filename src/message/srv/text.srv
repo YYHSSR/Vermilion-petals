@@ -1,0 +1,6 @@
+int32 num1
+int32 num2
+float32 age
+---
+int32 num
+float32 result
