@@ -6,3 +6,4 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find limo_bringup)/rviz/rtab_slam.rviz"/>
 
 </launch>
+

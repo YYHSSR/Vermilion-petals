@@ -1,6 +1,6 @@
 <launch>
     <arg name="robot_namespace" default=""/>
-    <arg name="world_name" default="$(find limo_gazebo_sim)/worlds/empty.world"/>
+    <arg name="world_name" default="$(find limo_gazebo_sim)/worlds/limo_sandtable.world"/>
 
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="world_name" value="$(arg world_name)"/>
@@ -15,10 +15,10 @@
     <param name="robot_description" command="$(find xacro)/xacro '$(find limo_description)/urdf/limo_ackerman.xacro' robot_namespace:=$(arg robot_namespace)" />
 
     <!-- initial pose -->
-    <arg name="x" default="0.0"/>
-    <arg name="y" default="0.0"/>
-    <arg name="z" default="0.0"/>
-    <arg name="yaw" default="0.0"/>
+    <arg name="x" default="1.25"/>
+    <arg name="y" default="-3.0"/>
+    <arg name="z" default="0.1"/>
+    <arg name="yaw" default="3.14"/>
     <node name="spawn_limo_model" pkg="gazebo_ros" type="spawn_model" args="-x $(arg x)
               -y $(arg y)
               -z $(arg z)
@@ -38,7 +38,6 @@
 
     <node pkg="tf" type="static_transform_publisher" name="base_link_to_laser_link" args="0.105 0.0 0.08 0.0 0.0 0.0 /base_link /laser_link 10" />
     <node pkg="tf" type="static_transform_publisher" name="base_link_to_imu_link" args="0.0 0.0 0.0 0.0 0.0 0.0 /base_link /imu_link 10" />
-
 
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find limo_description)/rviz/robot.rviz" />
 </launch>

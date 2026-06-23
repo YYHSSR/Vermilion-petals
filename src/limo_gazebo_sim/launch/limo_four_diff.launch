@@ -1,6 +1,6 @@
 <launch>
-    <arg name="robot_namespace" default="/"/>
-    <arg name="world_name" default="$(find limo_gazebo_sim)/worlds/willowgarage.world"/>
+    <arg name="robot_namespace" default=""/>
+    <arg name="world_name" default="$(find limo_gazebo_sim)/worlds/clearpath_playpen.world"/>
 
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
         <arg name="world_name" value="$(arg world_name)"/>
@@ -40,5 +40,5 @@
     <node pkg="tf" type="static_transform_publisher" name="base_link_to_imu_link" args="0.0 0.0 0.0 0.0 0.0 0.0 /base_link /imu_link 10" />
 
 
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find limo_description)/rviz/model_display.rviz" />
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find limo_description)/rviz/robot.rviz" />
 </launch>
