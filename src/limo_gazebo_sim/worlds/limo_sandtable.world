@@ -18,7 +18,7 @@
       <gravity>0 0 -9.8</gravity>
     </physics>
 
-    <!-- Sandtable Textured Ground (Visual Only, scaled 2.5x to 7.875m) -->
+    <!-- Sandtable Textured Ground (Visual Only, scaled to 7.5m) -->
     <model name='sandtable_ground'>
       <static>true</static>
       <link name='link'>
@@ -26,7 +26,7 @@
         <visual name='visual'>
           <geometry>
             <box>
-              <size>7.875 7.875 0.001</size>
+              <size>7.5 7.5 0.001</size>
             </box>
           </geometry>
           <material>
@@ -45,18 +45,18 @@
       <static>true</static>
       <!-- North Wall -->
       <link name='wall_north'>
-        <pose>3.9375 0 0.375 0 0 0</pose>
+        <pose>3.75 0 0.375 0 0 0</pose>
         <collision name='collision'>
           <geometry>
             <box>
-              <size>0.02 7.875 0.75</size>
+              <size>0.02 7.5 0.75</size>
             </box>
           </geometry>
         </collision>
         <visual name='visual'>
           <geometry>
             <box>
-              <size>0.02 7.875 0.75</size>
+              <size>0.02 7.5 0.75</size>
             </box>
           </geometry>
           <material>
@@ -69,18 +69,18 @@
       </link>
       <!-- South Wall -->
       <link name='wall_south'>
-        <pose>-3.9375 0 0.375 0 0 0</pose>
+        <pose>-3.75 0 0.375 0 0 0</pose>
         <collision name='collision'>
           <geometry>
             <box>
-              <size>0.02 7.875 0.75</size>
+              <size>0.02 7.5 0.75</size>
             </box>
           </geometry>
         </collision>
         <visual name='visual'>
           <geometry>
             <box>
-              <size>0.02 7.875 0.75</size>
+              <size>0.02 7.5 0.75</size>
             </box>
           </geometry>
           <material>
@@ -93,18 +93,18 @@
       </link>
       <!-- East Wall -->
       <link name='wall_east'>
-        <pose>0 3.9375 0.375 0 0 0</pose>
+        <pose>0 3.75 0.375 0 0 0</pose>
         <collision name='collision'>
           <geometry>
             <box>
-              <size>7.875 0.02 0.75</size>
+              <size>7.5 0.02 0.75</size>
             </box>
           </geometry>
         </collision>
         <visual name='visual'>
           <geometry>
             <box>
-              <size>7.875 0.02 0.75</size>
+              <size>7.5 0.02 0.75</size>
             </box>
           </geometry>
           <material>
@@ -117,18 +117,18 @@
       </link>
       <!-- West Wall -->
       <link name='wall_west'>
-        <pose>0 -3.9375 0.375 0 0 0</pose>
+        <pose>0 -3.75 0.375 0 0 0</pose>
         <collision name='collision'>
           <geometry>
             <box>
-              <size>7.875 0.02 0.75</size>
+              <size>7.5 0.02 0.75</size>
             </box>
           </geometry>
         </collision>
         <visual name='visual'>
           <geometry>
             <box>
-              <size>7.875 0.02 0.75</size>
+              <size>7.5 0.02 0.75</size>
             </box>
           </geometry>
           <material>

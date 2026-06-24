@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import rospy
@@ -14,14 +14,38 @@ from geometry_msgs.msg import Pose
 class follow_lane:
     def __init__(self):
         #订阅道路线位置
-        self.Pose_sub = rospy.Subscriber("lane_detect_pose", Pose, self.velctory)
+        self.Pose_sub = rospy.Subscriber("/lane_detect_pose", Pose, self.velctory)
         #发布速度指令
-        self.vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=2)
+        self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=2)
+        # 注册节点关闭时的回调函数，确保退出时车辆停止
+        self.found_line = False
+        rospy.on_shutdown(self.clean_shutdown)
+
+
+    def clean_shutdown(self):
+        rospy.loginfo("Shutdown hook triggered. Stopping the robot...")
+        vel = Twist()
+        vel.linear.x = 0.0
+        vel.angular.z = 0.0
+        self.vel_pub.publish(vel)
 
     def velctory(self,Pose):        
         x = Pose.position.x
         y = Pose.position.y
         z = Pose.position.z
+
+        # 如果尚未首次检测到车道线，检查是否现在检测到了
+        if not self.found_line:
+            if x >= 0:
+                self.found_line = True
+                rospy.loginfo("Yellow lane line successfully detected for the first time. Starting follow control!")
+            else:
+                # 尚未检测到线，保持静止，避免启动瞬间因为没有画面而产生错误转向
+                vel = Twist()
+                vel.linear.x = 0.0
+                vel.angular.z = 0.0
+                self.vel_pub.publish(vel)
+                return
 
         vel = Twist()
         #设置速度范围
@@ -39,23 +63,23 @@ class follow_lane:
                     "Publsh velocity command[{} m/s, {} rad/s]".format(
                         vel.linear.x, vel.angular.z))
         else  : 
-            #检测一条道路线时，道路中心在此范围直行
-            if x<210 and x >190 :
-                lin_vel = 0.19
-                ang_vel = 0
-            #偏差太大时，原地转向
-            elif x>500 or x<100:
-                lin_vel = 0
-                ang_vel = (1-x/210)
-            #偏差较小时微调车身位置
+            # 如果黄色车道线丢失 (x < 0)
+            if x < 0:
+                # 检查横向车道线以决定是否执行右转弯寻找车道
+                if y <= 350:
+                    lin_vel = 0.19
+                    ang_vel = -0.6
+                else:
+                    lin_vel = 0.19
+                    ang_vel = 0.0
             else:
+                # 正常检测到黄色线，进行比例控制以保持在车道中间（目标列为 60）
+                target_x = 60
                 lin_vel = 0.19
-                ang_vel = (1-x/200)*0.56
-            #转弯
-            if x == 195 and y <=350:
-                lin_vel = 0.19
-                ang_vel = -0.6
-        #设定转向速度范围
+                error = target_x - x
+                ang_vel = error * 0.007
+                
+            # 设定转向速度范围
         if ang_vel >= max_ang_vel:
             ang_vel = max_ang_vel
         if ang_vel <= min_ang_vel:
@@ -71,12 +95,12 @@ class follow_lane:
 if __name__ == '__main__':
     try:
         # 初始化ros节点
-        rospy.init_node("follow_lane", anonymous=True)
+        rospy.init_node("follow_lane", anonymous=False)
         rospy.loginfo("Starting follow lane")
         follow_lane()
         rospy.spin()
     except KeyboardInterrupt:
-        print "Shutting down follow_object node."
+        print("Shutting down follow_object node.")
         cv2.destroyAllWindows()
 
 
