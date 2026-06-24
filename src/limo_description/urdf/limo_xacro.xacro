@@ -10,7 +10,7 @@
             <visual>
                 <origin xyz="0 0 0" rpy="0 0 0" />
                 <geometry>
-                    <mesh filename="package://limo_description/meshes/limo_wheel.dae" />
+                    <mesh filename="package://limo_description/meshes/limo_wheel.dae" scale="2 2 2" />
                 </geometry>
             </visual>
             <collision>
@@ -45,7 +45,7 @@
             <visual name='laser_visual'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
                 <geometry>
-                    <cylinder radius="0.02" length="0.01"/>
+                    <cylinder radius="0.04" length="0.02"/>
                 </geometry>
                 <material name='laser_material'>
                     <ambient>0.1 0.1 0.1 1</ambient>
@@ -57,7 +57,7 @@
             <collision name='laser_collision'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
                 <geometry>
-                    <cylinder radius="0.032" length="0.016"/>
+                    <cylinder radius="0.064" length="0.032"/>
                 </geometry>
             </collision>
         </link>
@@ -86,7 +86,7 @@
             <visual name='depth_camera_visual'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
                 <geometry>
-                    <box size="0.02 0.06 0.015"/>
+                    <box size="0.04 0.12 0.03"/>
                 </geometry>
                 <material name='depth_camera_material'>
                     <ambient>0.1 0.1 0.1 1</ambient>
@@ -98,7 +98,7 @@
             <collision name='depth_camera_collision'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
                 <geometry>
-                    <box size="0.02 0.06 0.015"/>
+                    <box size="0.04 0.12 0.03"/>
                 </geometry>
             </collision>
         </link>
@@ -136,7 +136,7 @@
             <visual name='imu_visual'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
                 <geometry>
-                    <box size="0.001 0.001 0.001"/>
+                    <box size="0.002 0.002 0.002"/>
                 </geometry>
                 <material name='imu_material'>
                     <ambient>0.1 0.1 0.1 1</ambient>
@@ -148,7 +148,7 @@
             <collision name='imu_collision'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
                 <geometry>
-                    <box size="0.001 0.001 0.001"/>
+                    <box size="0.002 0.002 0.002"/>
                 </geometry>
             </collision>
         </link>

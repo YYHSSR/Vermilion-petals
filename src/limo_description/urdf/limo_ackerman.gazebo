@@ -38,8 +38,8 @@
             <rightRearJoint>rear_right_wheel</rightRearJoint>
             <leftHingeJoint>left_steering_hinge_wheel</leftHingeJoint>
             <rightHingeJoint>right_steering_hinge_wheel</rightHingeJoint>
-            <wheelSeparation>0.172</wheelSeparation>
-            <wheelDiameter>0.09</wheelDiameter>
+            <wheelSeparation>0.344</wheelSeparation>
+            <wheelDiameter>0.18</wheelDiameter>
             <robotBaseFrame>base_footprint</robotBaseFrame>
             <commandTopic>cmd_vel</commandTopic>
             <torque>50</torque>

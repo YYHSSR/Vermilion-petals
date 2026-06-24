@@ -66,15 +66,15 @@ class follow_lane:
             # 如果黄色车道线丢失 (x < 0)
             if x < 0:
                 # 检查横向车道线以决定是否执行右转弯寻找车道
-                if y <= 350:
+                if y <= 340:
                     lin_vel = 0.19
-                    ang_vel = -0.6
+                    ang_vel = -1.2
                 else:
                     lin_vel = 0.19
                     ang_vel = 0.0
             else:
                 # 正常检测到黄色线，进行比例控制以保持在车道中间（目标列为 60）
-                target_x = 60
+                target_x = 140
                 lin_vel = 0.19
                 error = target_x - x
                 ang_vel = error * 0.007

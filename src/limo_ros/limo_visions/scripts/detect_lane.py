@@ -36,7 +36,7 @@ class lane_converter:
         mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
 
         mask = cv2.morphologyEx(mask,cv2.MORPH_CLOSE,kernel)
-        color_y = mask[360:460,270:340]
+        color_y = mask[360:460,270:320]
         color_sum = mask
         #读取区域像素数量
         white_count_y = np.sum(color_y == 255)
