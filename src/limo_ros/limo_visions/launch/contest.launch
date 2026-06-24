@@ -1,0 +1,9 @@
+<launch>
+    <!-- Launch the lane detection node -->
+    <node name="detect_lane" pkg="limo_visions" type="detect_lane_contest.py" output="screen" />
+
+    <!-- Launch the lane following node -->
+    <node name="follow_lane" pkg="limo_visions" type="follow_lane_contest.py" output="screen" />
+
+    <node name="record_contest" pkg="limo_visions" type="record_contest.py" output="screen" />
+</launch>
