@@ -35,6 +35,7 @@ class follow_lane:
         self.is_stopping = False
         self.is_approaching = False
         self.target_stop_dist = 0.0
+        self.red_dot_count = 0
         self.cooldown_until = rospy.Time(0)
         #发布速度指令
         self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=2)
@@ -121,7 +122,7 @@ class follow_lane:
         z = Pose.position.z
 
         global out,pose_x,pose_y,front_dist,left_dist,right_dist,red_x,red_y,red_area
-    
+        # self.go()
         #停车
         # 1. 如果当前正在执行停靠等待，直接发布停止速度并返回（防止多线程回调重入）
         if self.is_stopping:
@@ -131,15 +132,23 @@ class follow_lane:
             self.vel_pub.publish(vel)
             return
 
-        # 2. 检查是否检测到红点，如果没在冷却期内且没有在逼近，触发逼近状态并记录初始雷达距离
+        # 2. 检查是否检测到红点，如果没在冷却期内且没有在逼近，触发检测
         now = rospy.Time.now()
         if now >= self.cooldown_until and not self.is_approaching:
             # 只有当红点可见(red_area > 100)、距离合适(red_y >= 220)
-            if red_area > 100 and red_y >= 220 :
-                self.is_approaching = True
-                self.target_stop_dist = front_dist - 0.50  # 设从小车检测到 red_y=220 到停在红圈正上方所需行驶的物理距离为 0.50 米
-                rospy.loginfo("Red dot detected at y=%.2f. Using LiDAR relative stop: start_dist=%.4f, target_dist=%.4f", 
-                              red_y, front_dist, self.target_stop_dist)
+            if red_area > 100 and red_y >= 220:
+                self.red_dot_count += 1
+                rospy.loginfo("Encountered red dot #%d (red_area=%.2f, red_y=%.2f)", self.red_dot_count, red_area, red_y)
+                # 判断当前次数是否执行停车 (1, 3, 5 次停车，其他次数跳过)
+                if self.red_dot_count in [1, 3, 5]:
+                    self.is_approaching = True
+                    self.target_stop_dist = front_dist - 0.50  # 设从小车检测到 red_y=220 到停在红圈正上方所需行驶的物理距离为 0.50 米
+                    rospy.loginfo("Red dot #%d will stop. Using LiDAR relative stop: start_dist=%.4f, target_dist=%.4f", 
+                                  self.red_dot_count, front_dist, self.target_stop_dist)
+                else:
+                    # 不停车的红点，直接设置冷却期，使其在越过该红圈前不重复计数，然后继续正常行驶
+                    self.cooldown_until = rospy.Time.now() + rospy.Duration(5.0)
+                    rospy.loginfo("Red dot #%d will be bypassed without stopping. Setting cooldown...", self.red_dot_count)
 
         # 3. 如果在逼近状态下，单独接管速度控制并最终停靠，但转向仍使用本回调传入的 x, y, z 计算出的巡线角速度
         if self.is_approaching:
@@ -185,6 +194,14 @@ class follow_lane:
             vel.angular.z = ang_vel
             self.vel_pub.publish(vel)
             return
+        if self.red_dot_count >= 6 and 1.80 <= front_dist <= 1.85 and -1.98 <= -pose_x <= -1.94:
+            if rospy.Time.now() >= self.cooldown_until:
+                rospy.loginfo("Special stop condition met. Starting 5.5s park.")
+                self.is_stopping = True
+                self.run_time(0.0, 0.0, 5.5)
+                self.is_stopping = False
+                self.cooldown_until = rospy.Time.now() + rospy.Duration(3.0)
+                return
 
         #self.go()
         #巡线逻辑  
@@ -217,6 +234,7 @@ class follow_lane:
             # rospy.loginfo(
             #         "Publsh velocity command[{} m/s, {} rad/s]".format(
             #             vel.linear.x, vel.angular.z))
+            return
         else  : 
             # 如果黄色车道线丢失 (x < 0)
             if x < 0:
@@ -235,14 +253,14 @@ class follow_lane:
                 ang_vel = error * 0.007
                 
             # 设定转向速度范围
-        if ang_vel >= max_ang_vel:
-            ang_vel = max_ang_vel
-        if ang_vel <= min_ang_vel:
-            ang_vel = min_ang_vel
-        #发布速度指令
-        vel.linear.x  = lin_vel
-        vel.angular.z = ang_vel
-        self.vel_pub.publish(vel)
+            if ang_vel >= max_ang_vel:
+                ang_vel = max_ang_vel
+            if ang_vel <= min_ang_vel:
+                ang_vel = min_ang_vel
+            #发布速度指令
+            vel.linear.x  = lin_vel
+            vel.angular.z = ang_vel
+            self.vel_pub.publish(vel)
 
 if __name__ == '__main__':
     try:

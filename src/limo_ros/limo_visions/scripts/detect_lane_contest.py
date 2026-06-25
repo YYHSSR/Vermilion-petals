@@ -122,7 +122,7 @@ class lane_converter:
         redPose.position.y = red_y
         redPose.position.z = red_area
         self.red_pub.publish(redPose)
-        rospy.loginfo_throttle(0.1, "Red Dot - x: %.2f, y: %.2f, area: %.2f" % (red_x, red_y, red_area))
+        # rospy.loginfo_throttle(0.1, "Red Dot - x: %.2f, y: %.2f, area: %.2f" % (red_x, red_y, red_area))
         # 6. 发布二值化图像供调试监控
         try:
             # 发布黄色车道线二值图

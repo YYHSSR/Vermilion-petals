@@ -62,6 +62,7 @@ class follow_lane:
             rospy.loginfo(
                     "Publsh velocity command[{} m/s, {} rad/s]".format(
                         vel.linear.x, vel.angular.z))
+            return
         else  : 
             # 如果黄色车道线丢失 (x < 0)
             if x < 0:

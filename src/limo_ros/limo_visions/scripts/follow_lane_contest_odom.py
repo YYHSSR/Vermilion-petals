@@ -38,6 +38,7 @@ class follow_lane:
         self.start_pose_x = 0.0
         self.start_pose_y = 0.0
         self.target_travel_dist = 0.0
+        self.red_dot_count = 0
         self.cooldown_until = rospy.Time(0)
         #发布速度指令
         self.vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=2)
@@ -58,6 +59,7 @@ class follow_lane:
         global pose_x,pose_y
         pose_x = msg.pose.pose.position.x
         pose_y = msg.pose.pose.position.y
+        rospy.loginfo_throttle(0.1, "Odom Pose - x: %.4f, y: %.4f" % (pose_x, pose_y))
 
     #获取红点坐标
     def red_pose(self, msg):
@@ -124,7 +126,7 @@ class follow_lane:
         z = Pose.position.z
 
         global out,pose_x,pose_y,front_dist,left_dist,right_dist,red_x,red_y,red_area
-    
+        self.go()
         #停车
         # 1. 如果当前正在执行停靠等待，直接发布停止速度并返回（防止多线程回调重入）
         if self.is_stopping:
@@ -133,19 +135,22 @@ class follow_lane:
             vel.angular.z = 0.0
             self.vel_pub.publish(vel)
             return
-        # 2. 检查是否检测到红点，如果没在冷却期内且没有在逼近，触发逼近状态并记录初始地图坐标和动态行驶目标
+        # 2. 检查是否检测到红点，如果没在冷却期内且没有在逼近，触发检测
         now = rospy.Time.now()
         if now >= self.cooldown_until and not self.is_approaching:
-            # 当红圈被识别且到达中近景（red_y >= 220）时触发
-            if red_area > 1500 and red_y >= 270:
-                self.is_approaching = True
-                self.start_pose_x = pose_x
-                self.start_pose_y = pose_y
-                # 动态计算所需的物理行驶距离：根据触发时的 red_y 进行补偿，解决画面延迟导致起始点不固定的问题
-                # 基准：在 red_y = 220 时需向前行驶 0.50 米；在 red_y = 320 时仅需行驶 0.15 米
-                self.target_travel_dist = 0.30 - 0.0035 * (red_y - 220)
-                rospy.loginfo("Red dot detected at y=%.2f. Trigger pose: (%.4f, %.4f), target_travel_dist: %.4f m", 
-                              red_y, pose_x, pose_y, self.target_travel_dist)
+            # 当红圈被识别且到达触发条件时触发
+            if red_area > 1500 and red_y >= 300:
+                self.red_dot_count += 1
+                # 判断当前次数是否执行停车 (1, 3, 5次停车，其他次数跳过)
+                if self.red_dot_count in [1, 3, 5]:
+                    self.is_approaching = True
+                    self.start_pose_x = pose_x
+                    self.start_pose_y = pose_y
+                    # 动态计算所需的物理行驶距离
+                    self.target_travel_dist = 1.3 - 0.0035 * (red_y - 220)
+                else:
+                    # 不停车的红点，直接设置冷却期，使其在越过该红圈前不重复计数，然后继续正常行驶
+                    self.cooldown_until = rospy.Time.now() + rospy.Duration(3.0)
         # 3. 如果在逼近状态下，单独接管速度控制并最终停靠，但转向仍使用本回调传入的 x, y, z 计算出的巡线角速度
         if self.is_approaching:
             # 计算当前已行驶的欧氏距离
@@ -153,21 +158,22 @@ class follow_lane:
             dist_error = self.target_travel_dist - dist_traveled
             # 安全冗余：如果雷达探测到车头距离障碍物小于 0.20m，或者已经达到了行驶的目标距离，则立即刹车停靠
             if dist_error <= 0.01:
-                rospy.loginfo("Reached stop position. Traveled: %.4f m, error: %.4f m, front_dist: %.4f m. Starting 5.5s park.", 
-                              dist_traveled, dist_error, front_dist)
                 self.is_stopping = True
                 self.is_approaching = False
                 self.run_time(0.0, 0.0, 5.5)
                 self.is_stopping = False
                 self.cooldown_until = rospy.Time.now() + rospy.Duration(3.0)
-                rospy.loginfo("5.5s stop finished. Resuming lane following.")
                 return
             else:
                 # 比例减速控制，最低速度 0.05m/s，最高速度 0.15m/s
-                lin_vel = np.clip(0.25 * dist_error, 0.1, 0.23)
-            rospy.loginfo_throttle(0.2, "Approaching red dot: traveled=%.4f/%.4f m, target_vel=%.4f m/s" % 
-                                   (dist_traveled, self.target_travel_dist, lin_vel))
-
+                if dist_error > 0.15:
+                    lin_vel = 0.19
+                else:
+                    lin_vel = np.clip(
+                        0.25 * dist_error,
+                        0.02,
+                        0.19
+                    )
             # 逼近期间计算并使用正常的寻线转向控制，不破坏原本的巡线转向计算规则
             if z <= 5:
                 ang_vel = 0.0
@@ -181,7 +187,6 @@ class follow_lane:
                     target_x = 140
                     error = target_x - x
                     ang_vel = error * 0.007
-
             # 设定转向速度范围
             max_ang_vel = 0.8
             min_ang_vel = -0.8
@@ -195,7 +200,15 @@ class follow_lane:
             vel.angular.z = ang_vel
             self.vel_pub.publish(vel)
             return
-
+        if self.red_dot_count >= 6 and 1.80 <= front_dist <= 1.95 and 3.05<= pose_y <=3.07:
+            if rospy.Time.now() >= self.cooldown_until:
+                rospy.loginfo("Special stop condition met. Starting 5.5s park.")
+                self.is_stopping = True
+                self.run_time(0.0, 0.0, 5.5)
+                self.is_stopping = False
+                self.cooldown_until = rospy.Time.now() + rospy.Duration(3.0)
+                return
+            
         #self.go()
         #巡线逻辑  
         # 如果尚未首次检测到车道线，检查是否现在检测到了
@@ -223,10 +236,7 @@ class follow_lane:
             vel.angular.z = ang_vel
             self.vel_pub.publish(vel)
             rospy.sleep(1)
-            #发布速度打印
-            # rospy.loginfo(
-            #         "Publsh velocity command[{} m/s, {} rad/s]".format(
-            #             vel.linear.x, vel.angular.z))
+            return
         else  : 
             # 如果黄色车道线丢失 (x < 0)
             if x < 0:
@@ -245,18 +255,18 @@ class follow_lane:
                 ang_vel = error * 0.007
                 
             # 设定转向速度范围
-        if ang_vel >= max_ang_vel:
-            ang_vel = max_ang_vel
-        if ang_vel <= min_ang_vel:
-            ang_vel = min_ang_vel
-        #发布速度指令
-        vel.linear.x  = lin_vel
-        vel.angular.z = ang_vel
-        self.vel_pub.publish(vel)
-        #打印速度日志
-        # rospy.loginfo(
-        #             "Publsh velocity command[{} m/s, {} rad/s]".format(
-        #                 vel.linear.x, vel.angular.z))
+            if ang_vel >= max_ang_vel:
+                ang_vel = max_ang_vel
+            if ang_vel <= min_ang_vel:
+                ang_vel = min_ang_vel
+            #发布速度指令
+            vel.linear.x  = lin_vel
+            vel.angular.z = ang_vel
+            self.vel_pub.publish(vel)
+            #打印速度日志
+            # rospy.loginfo(
+            #             "Publsh velocity command[{} m/s, {} rad/s]".format(
+            #                 vel.linear.x, vel.angular.z))
 
 if __name__ == '__main__':
     try:
