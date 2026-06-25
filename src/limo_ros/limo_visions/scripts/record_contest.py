@@ -34,8 +34,8 @@ def record_pose():
         except (tf.Exception, tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             rospy.logwarn("Neither 'map' nor 'odom' transform to 'base_link' is available yet. Defaulting to 'map' and will retry in loop.")
 
-    # 设置循环频率 (40Hz)
-    rate = rospy.Rate(40)
+    # 设置循环频率 (20Hz)
+    rate = rospy.Rate(20)
     
     while not rospy.is_shutdown():
         try:

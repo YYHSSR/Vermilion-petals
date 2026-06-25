@@ -12,18 +12,16 @@ from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import PoseStamped
 
-global out,pose_x,pose_y
+global out,pose_x,pose_y,front_dist,left_dist,right_dist
 out = 1
 pose_x = pose_y= 0
+front_dist = left_dist = right_dist = 999.0
 
 class follow_lane:
     def __init__(self):
         #订阅道路线位置
         self.Pose_sub = rospy.Subscriber("/lane_detect_pose", Pose, self.velctory)
         #订阅雷达数据
-        self.front_dist = 999
-        self.left_dist = 999
-        self.right_dist = 999
         self.Scan_sub = rospy.Subscriber("/limo/scan", LaserScan, self.scan,queue_size=5)
         #订阅地图坐标 /pose
         self.map_pose = rospy.Subscriber("/pose", PoseStamped, self.pose,queue_size=3)
@@ -49,21 +47,26 @@ class follow_lane:
 
     #获取雷达数据
     def scan(self,msg):
+        global front_dist,left_dist,right_dist
         ranges = np.array(msg.ranges)
-
         ranges[np.isinf(ranges)] = 999
         ranges[np.isnan(ranges)] = 999
-
-        n = len(ranges)
-
-        rospy.loginfo_throttle(
-            1,
-            "n=%d front0=%.2f front180=%.2f front360=%.2f",
-            n,
-            ranges[0],
-            ranges[n//2],
-            ranges[-1]
-        )
+        # 计算每个数据点对应的角度（角度，单位：度）
+        angles = msg.angle_min + np.arange(len(ranges)) * msg.angle_increment
+        angles_deg = np.degrees(angles)
+        # 过滤掉小于等于 0.07m 的雷达盲区数据（根据 Gazebo 配置，雷达盲区调整为 0.08m）
+        valid_mask = (ranges > 0.07) & (ranges < 999)
+        # 前方距离 (-15° 到 15°)
+        front_idx = np.where((angles_deg >= -15) & (angles_deg <= 15) & valid_mask)[0]
+        front_dist = float(np.min(ranges[front_idx])) if len(front_idx) > 0 else 999.0
+        # 左侧距离 (45° 到 90°)
+        left_idx = np.where((angles_deg >= 45) & (angles_deg <= 90) & valid_mask)[0]
+        left_dist = float(np.min(ranges[left_idx])) if len(left_idx) > 0 else 999.0
+        # 右侧距离 (-90° 到 -45°)
+        right_idx = np.where((angles_deg >= -90) & (angles_deg <= -45) & valid_mask)[0]
+        right_dist = float(np.min(ranges[right_idx])) if len(right_idx) > 0 else 999.0
+        # 以 20Hz 的频率限流打印雷达数据
+        rospy.loginfo_throttle(0.05, "left: %.4f, front: %.4f, right: %.4f" % (left_dist, front_dist, right_dist))
 
     def run_time(self, lv, av, tim):
         vel = Twist()
@@ -99,8 +102,8 @@ class follow_lane:
         y = Pose.position.y
         z = Pose.position.z
 
-        global out,pose_x,pose_y
-        self.go()
+        global out,pose_x,pose_y,front_dist,left_dist,right_dist
+        # self.go()
         # 如果尚未首次检测到车道线，检查是否现在检测到了
         if not self.found_line:
             if x >= 0:
@@ -126,9 +129,10 @@ class follow_lane:
             vel.angular.z = ang_vel
             self.vel_pub.publish(vel)
             rospy.sleep(1)
-            rospy.loginfo(
-                    "Publsh velocity command[{} m/s, {} rad/s]".format(
-                        vel.linear.x, vel.angular.z))
+            #发布速度打印
+            # rospy.loginfo(
+            #         "Publsh velocity command[{} m/s, {} rad/s]".format(
+            #             vel.linear.x, vel.angular.z))
         else  : 
             # 如果黄色车道线丢失 (x < 0)
             if x < 0:
@@ -155,9 +159,10 @@ class follow_lane:
         vel.linear.x  = lin_vel
         vel.angular.z = ang_vel
         self.vel_pub.publish(vel)
-        rospy.loginfo(
-                    "Publsh velocity command[{} m/s, {} rad/s]".format(
-                        vel.linear.x, vel.angular.z))
+        #打印速度日志
+        # rospy.loginfo(
+        #             "Publsh velocity command[{} m/s, {} rad/s]".format(
+        #                 vel.linear.x, vel.angular.z))
 
 if __name__ == '__main__':
     try:

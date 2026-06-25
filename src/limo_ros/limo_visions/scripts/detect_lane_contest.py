@@ -73,7 +73,8 @@ class lane_converter:
         objPose.position.z = white_count_sum;
         #发布道路线位置
         self.target_pub.publish(objPose)
-        #print(objPose)
+        #打印XYZ等值
+        # print(objPose)
         #发布二值化道路图像
         try:
             self.image_pub.publish(self.bridge.cv2_to_imgmsg(mask, "mono8"))
